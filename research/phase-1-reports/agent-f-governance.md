@@ -1,3 +1,4 @@
+<DONE>
 # Lane F Governance Mapping
 
 Scope: Governance and quality mapping for CLI candidates (`codex`, `opencode`, `goose`, `kilocode`).

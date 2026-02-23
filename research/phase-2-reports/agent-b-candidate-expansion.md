@@ -1,3 +1,4 @@
+<DONE>
 # Phase-2 Lane B: Candidate Expansion
 
 Scope: discovery-focused expansion for open-source CLI/MCP candidates, including:

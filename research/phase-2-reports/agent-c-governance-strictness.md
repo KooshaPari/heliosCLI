@@ -1,3 +1,4 @@
+<DONE>
 # Phase-2 Lane C: Governance Strictness Equivalence (`quality:strict-full` / max-strictness)
 
 Scope: Governance normalization for `codex`, `opencode`, `goose`, and `kilocode` target projects against the explicit `quality:strict-full` policy and their observed harness equivalents.

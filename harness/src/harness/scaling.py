@@ -74,16 +74,29 @@ class ResourceSampler:
         """Sample current resources."""
         # Use Rust for 10-50x speedup
         if self._rust is not None:
-            rust_snapshot = self._rust.sample()
-            return ResourceSnapshot(
-                cpu_percent=rust_snapshot.cpu_percent,
-                memory_percent=rust_snapshot.memory_percent,
-                memory_available_mb=rust_snapshot.memory_available_mb,
-                fd_count=rust_snapshot.fd_count,
-                fd_limit=rust_snapshot.fd_limit,
-                load_avg=rust_snapshot.load_avg,
-                timestamp=rust_snapshot.timestamp,
-            )
+            result = self._rust.sample()
+            # Handle both tuple (new) and object (old) returns
+            if isinstance(result, tuple):
+                cpu_percent, memory_percent, memory_available_mb, fd_count, load_avg, timestamp = result
+                return ResourceSnapshot(
+                    cpu_percent=cpu_percent,
+                    memory_percent=memory_percent,
+                    memory_available_mb=memory_available_mb,
+                    fd_count=fd_count,
+                    fd_limit=0,
+                    load_avg=load_avg,
+                    timestamp=timestamp,
+                )
+            else:
+                return ResourceSnapshot(
+                    cpu_percent=result.cpu_percent,
+                    memory_percent=result.memory_percent,
+                    memory_available_mb=result.memory_available_mb,
+                    fd_count=result.fd_count,
+                    fd_limit=result.fd_limit,
+                    load_avg=result.load_avg,
+                    timestamp=result.timestamp,
+                )
 
         # Fallback to Python
         # CPU

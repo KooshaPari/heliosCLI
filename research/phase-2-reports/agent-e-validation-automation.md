@@ -1,3 +1,4 @@
+<DONE>
 # Phase-2 Lane E: Validation Automation
 
 Execution status: `E1`-`E10` implemented.

@@ -1,3 +1,4 @@
+<DONE>
 # CLI/API/SDK Harness Spec (Phase-1 Draft)
 
 ## Purpose

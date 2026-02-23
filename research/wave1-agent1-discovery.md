@@ -1,3 +1,4 @@
+<DONE>
 # Wave 1 / Agent 1 Discovery
 
 Scope: local clone/repo discovery for `codex`, `opencode`, `goose`, `kilo`.

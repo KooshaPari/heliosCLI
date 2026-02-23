@@ -1,3 +1,4 @@
+<DONE>
 # Lane D Report: kilocode
 
 Scope: Local clone assessment of `kilo` (`/Users/kooshapari/temp-PRODVERCEL/485/heliosHarness/clones/kilocode`).

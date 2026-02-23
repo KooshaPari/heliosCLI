@@ -1,3 +1,4 @@
+<DONE>
 # Phase-2 Lane A: core-repo hardening
 
 Scope: clone repair + quality hardening for `codex`, `opencode`, `goose`, `kilocode`, and `cliproxyapi++`.

@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "crates/harness_cache",
+    "crates/harness_runner", 
+    "crates/harness_scaling",
+    "crates/harness_schema",
+]

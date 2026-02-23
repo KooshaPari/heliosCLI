@@ -1,3 +1,4 @@
+<DONE>
 # Phase-2 Lane D: Harness Architecture Planning
 
 Scope: implementation-ready plan for the harness core (`discoverer`, `runner`, `quality normalizer`, `evidence schema`) with concrete file layouts, commands, and typed interfaces.
