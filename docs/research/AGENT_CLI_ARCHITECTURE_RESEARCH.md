@@ -8,6 +8,45 @@ Competitors use: tmux/process-per-session model
 
 ---
 
+## Language Runtime Analysis
+
+### Python: CPython vs PyPy vs Rust
+
+| Runtime | JIT | Speed | Memory | Best For |
+|---------|-----|--------|---------|-----------|
+| PyPy 3.11 | Yes (tracing) | **25x faster** | Higher | Long-running apps |
+| CPython 3.14 | Limited | 1.5-2x | Baseline | Compatibility |
+| Rust | N/A | **50x faster** | Lowest | Hot paths |
+
+**Key Finding**: PyPy 3.11 beats CPython by 25x on pure Python CPU tasks.
+CPython 3.14 JIT is modest improvement - not enough to match PyPy.
+
+### Our Strategy
+
+1. **Rust for hot paths** - Resource sampling, cache operations
+2. **CPython for coordination** - Good enough for orchestration
+3. **Background threads** - Sampling in Rust, read from Python
+
+---
+
+## Shell Alternatives
+
+| Shell | Language | Speed | Memory | Best For |
+|-------|----------|-------|--------|----------|
+| **Nushell** | Rust | Fast | Low | Data pipelines |
+| **YSH** | C++/Python | Fast | Low | Structured scripts |
+| **Elvish** | Go | Medium | Low | Interactive |
+| **Murex** | Go | Fast | Low | Complex workflows |
+| Bash | C | Legacy | Medium | Compatibility |
+
+**Our Approach**: Embed Nushell or YSH for shell operations, keep rest in Rust/Python.
+
+---
+
+## Architecture Comparison
+
+---
+
 ## Competitor Analysis
 
 ### Claude Code (Anthropic)
@@ -71,6 +110,42 @@ Competitors use: tmux/process-per-session model
    - Resource sampling: 3.3μs (20x faster than Python)
    - Background sampling with cached values
    - Sub-1ms target achievable with more optimization
+
+---
+
+## Language Implementation Strategy
+
+### Hot Paths: Rust Only
+
+```rust
+// Resource sampling - 3.3μs
+// Cache operations - sub-microsecond
+// Process management - native
+```
+
+### Coordination: CPython 3.14
+
+- Good enough for orchestration
+- Async/await native support
+- Extensive library ecosystem
+
+### Shell Operations: Embedded Nushell/YSH
+
+```python
+# Instead of subprocess.run(['bash', '-c', cmd])
+result = nushell.eval(command)  # Parse, execute in-process
+```
+
+### Where Python Falls Short
+
+| Operation | Python Cost | Rust Cost |
+|-----------|-------------|-----------|
+| CPU sampling | 65μs | 0.1μs |
+| String parse | 10μs | 0.5μs |
+| Dict lookup | 1μs | 0.1μs |
+| JSON encode | 5μs | 0.3μs |
+
+**Rule**: If called >1000x/sec, use Rust. Otherwise Python is fine.
 
 ---
 
@@ -144,3 +219,28 @@ Our single-process architecture with in-memory session isolation is fundamentall
 - **Instant state recovery**
 
 The key is maintaining Python async efficiency while using Rust for CPU hotspots.
+
+---
+
+## References
+
+### Python Runtimes
+- CPython 3.14 JIT: realpython.com (August 2025)
+- PyPy vs CPython: speed.pypy.org
+- Python performance: medium.com/@hieutrung
+
+### Shell Alternatives
+- Nushell: nushell.sh
+- YSH/Oils: oils.pub
+- Elvish: github.com/elvesh/elvish
+- Murex: github.com/lmorg/murex
+
+### Architecture
+- Claude Code subagents: docs.anthropic.com
+- tmux orchestration: gist.github.com/kaushikgopal
+- Claude mpm: github.com/bobmatnyc/claude-mpm
+
+### Performance
+- Rust atoms: doc.rust-lang.org/std/sync/atomic/
+- Zero-copy: kitemetric.com/blogs/zero-copy-parsing
+- PyPy benchmarks: speed.pypy.org
