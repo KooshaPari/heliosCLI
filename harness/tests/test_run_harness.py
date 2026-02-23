@@ -4,6 +4,9 @@ from pathlib import Path
 
 
 SCRIPT = Path('harness/scripts/run-harness.py').resolve()
+# Alternative path for running from harness directory
+if not SCRIPT.exists():
+    SCRIPT = Path('scripts/run-harness.py').resolve()
 
 
 def _run(cmd, cwd: Path) -> str:
@@ -108,4 +111,6 @@ def test_harness_replay_and_validate(tmp_path):
     assert "prior_plan_hash" in second_payload["replay"]
 
     schema = Path('harness/schemas/harness-evidence.schema.json').resolve()
+    if not schema.exists():
+        schema = Path('schemas/harness-evidence.schema.json').resolve()
     _run(["python3", str(SCRIPT), "validate", "--schema", str(schema), "--file", str(out_second)], cwd=tmp_path)
