@@ -400,6 +400,113 @@ codex-agent → NATS → task queue → worker pool
 
 ---
 
+## Hardware Acceleration Matrix
+
+### Apple Silicon (M1/M2/M3/M4)
+
+| Component | Capability | Optimization |
+|-----------|------------|--------------|
+| **ANE (Neural Engine)** | 38 TOPS (M4) | ML inference |
+| **GPU** | 4.6 TFLOPS | Metal compute |
+| **Unified Memory** | Zero-copy | CPU↔GPU |
+| **SIMD** | NEON 128-bit | Vector ops |
+
+**Key findings:**
+- ANE runs transformers 10x faster, 14x less memory vs CPU
+- MLX framework for Python/Swift ML acceleration
+- Core ML for on-device inference
+- simd-json for JSON parsing acceleration
+- Hand-tuned NEON 1.2-4.3x faster than std::simd
+
+### Intel Arc Xe (Integrated + Discrete)
+
+| Feature | Capability | Use Case |
+|---------|------------|----------|
+| **Xe Vector Engine** | SIMD | Parallel compute |
+| **Ray Tracing** | RT Unit | Future graphics |
+| **VRS** | Variable rate | Adaptive shading |
+| **DirectX 12** | Ultimate | Modern APIs |
+
+**Optimization techniques:**
+- Use oneAPI/GPA profiling tools
+- Optimize compute shaders for XVEs
+- Leverage USM for memory management
+- Use mesh shading for geometry pipeline
+
+### AMD RDNA3/RDNA4
+
+| Feature | RDNA3 | RDNA4 |
+|---------|-------|-------|
+| **FP16/clock** | 512 | 1024 |
+| **Int8/clock** | 1024 | 2048 |
+| **Matrix Cores** | 2nd gen | 3rd gen |
+| **WMMA** | Supported | Enhanced |
+
+**Optimization techniques:**
+- Use ROCm for compute
+- Leverage WMMA intrinsics (gfx12)
+- Flash attention optimization
+- ONNX models with 4x faster inference
+
+### NVIDIA RTX 30/40/50 Series
+
+| Architecture | Tensor Cores | RT Cores | CUDA |
+|--------------|--------------|----------|------|
+| Ampere (30) | 3rd gen | 2nd gen | 11.x |
+| Ada (40) | 4th gen | 3rd gen | 12.x |
+| Blackwell (50) | 5th gen | 4th gen | 12.x |
+
+**Optimization techniques:**
+- Coalesced memory access
+- Warp-level parallelism
+- Kernel launch tuning
+- TensorRT for inference
+- CuDNN for deep learning
+
+---
+
+## OS-Level Optimizations
+
+### macOS Variable Refresh Rate (ProMotion)
+
+| Display | Range | Frame Budget |
+|---------|-------|--------------|
+| Standard | 60Hz fixed | 16.67ms |
+| ProMotion | 40-120Hz | 8.33ms (120Hz) |
+| ProMotion+ | 40-240Hz | 4.17ms (240Hz) |
+
+**Techniques:**
+- Use CADisplayLink for frame pacing
+- Match render rate to refresh
+- Implement adaptive vsync
+- Handle Low Power Mode impacts
+
+### Terminal/TUI Rendering
+
+| Technique | Benefit | Implementation |
+|-----------|---------|----------------|
+| Delta rendering | 60-80% fewer writes | Track dirty regions |
+| Cursor optimization | Fewer moves | Direct positioning |
+| Scroll buffering | Smooth motion | Backbuffer |
+| Keyboard priority | Lower latency | Input thread |
+
+### Rust TUI Libraries Performance
+
+| Library | FPS Target | Use Case |
+|---------|------------|----------|
+| ratatui | 60fps | Rich TUI |
+| tui-rs | 30-60fps | Simple TUI |
+| crossterm | Platform | Cross-platform |
+| euclid | Math | Geometry |
+
+**Best practices:**
+- Minimize redraws (delta)
+- Use efficient backends
+- Profile with Instruments
+- Target 16ms frame budget
+
+---
+
 ## Summary
 
 **Key Priorities:**
