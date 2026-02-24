@@ -31,10 +31,23 @@ pub struct CacheConfig {
 impl Default for CacheConfig {
     fn default() -> Self {
         Self {
-            ttl_secs: 300,
-            max_capacity: 10_000,
-            shards: 16,
+            ttl_secs: 60,        // Reduced from 300
+            max_capacity: 100,   // Reduced from 10,000
+            shards: 4,           // Reduced from 16
             name: "default".to_string(),
+            write_mode: WriteMode::WriteThrough,
+        }
+    }
+}
+
+/// Lean configuration for low-memory environments (<10MB)
+impl CacheConfig {
+    pub fn lean() -> Self {
+        Self {
+            ttl_secs: 30,
+            max_capacity: 50,
+            shards: 2,
+            name: "lean".to_string(),
             write_mode: WriteMode::WriteThrough,
         }
     }
@@ -312,4 +325,107 @@ impl SyncCache {
     }
 
     pub fn stats(&self) -> Arc<CacheStats> { Arc::clone(&self.stats) }
+}
+
+/// Moka-backed cache (production-grade)
+/// Provides: thread-safe, TTL, LRU, background eviction
+pub struct MokaCache {
+    cache: moka::sync::Cache<String, Vec<u8>>,
+    stats: Arc<CacheStats>,
+}
+
+impl MokaCache {
+    pub fn new(config: CacheConfig) -> Self {
+        let cache = moka::sync::Cache::builder()
+            .max_capacity(config.max_capacity as u64)
+            .time_to_live(Duration::from_secs(config.ttl_secs))
+            .name(&config.name)
+            .build();
+        
+        Self {
+            cache,
+            stats: Arc::new(CacheStats::new()),
+        }
+    }
+
+    pub fn with_lean_defaults() -> Self {
+        Self::new(CacheConfig::lean())
+    }
+
+    pub fn get(&self, key: &str) -> Option<Vec<u8>> {
+        match self.cache.get(key) {
+            Some(v) => {
+                self.stats.record_hit();
+                Some(v)
+            }
+            None => {
+                self.stats.record_miss();
+                None
+            }
+        }
+    }
+
+    pub fn set(&self, key: &str, value: Vec<u8>) {
+        self.cache.insert(key.to_string(), value);
+        self.stats.set_items(self.cache.entry_count() as usize);
+    }
+
+    pub fn invalidate(&self, key: &str) {
+        self.cache.invalidate(key);
+    }
+
+    pub fn clear(&self) {
+        self.cache.invalidate_all();
+    }
+
+    pub fn stats(&self) -> Arc<CacheStats> {
+        Arc::clone(&self.stats)
+    }
+}
+
+/// Async Moka cache for tokio runtime
+pub struct MokaAsyncCache {
+    cache: moka::future::Cache<String, Vec<u8>>,
+    stats: Arc<CacheStats>,
+}
+
+impl MokaAsyncCache {
+    pub async fn new(config: CacheConfig) -> Self {
+        let cache = moka::future::Cache::builder()
+            .max_capacity(config.max_capacity as u64)
+            .time_to_live(Duration::from_secs(config.ttl_secs))
+            .name(&format!("{}-async", config.name))
+            .build();
+        
+        Self {
+            cache,
+            stats: Arc::new(CacheStats::new()),
+        }
+    }
+
+    pub async fn get(&self, key: &str) -> Option<Vec<u8>> {
+        match self.cache.get(key).await {
+            Some(v) => {
+                self.stats.record_hit();
+                Some(v)
+            }
+            None => {
+                self.stats.record_miss();
+                None
+            }
+        }
+    }
+
+    pub async fn set(&self, key: &str, value: Vec<u8>) {
+        self.cache.insert(key.to_string(), value).await;
+        self.stats.set_items(self.cache.entry_count() as usize);
+    }
+
+    pub async fn invalidate(&self, key: &str) {
+        self.cache.invalidate(key).await;
+    }
+
+    pub fn stats(&self) -> Arc<CacheStats> {
+        Arc::clone(&self.stats)
+    }
 }
