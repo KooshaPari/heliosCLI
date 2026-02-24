@@ -6,7 +6,7 @@ use std::time::{Duration, Instant};
 use tokio::process::{Command, Child};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use std::sync::Arc;
-use tokio::sync::RwLock;
+use tracing::{info, instrument, error};
 
 /// Runner configuration
 #[derive(Debug, Clone)]
@@ -65,6 +65,7 @@ impl Runner {
     }
 
     /// Run command and get result
+    #[instrument(name = "runner_run", skip(self, args))]
     pub async fn run(&self, cmd: &str, args: &[&str]) -> Result<RunResult, RunError> {
         let start = Instant::now();
         

@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use tokio::sync::RwLock;
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::hash::{Hash, Hasher};
-use std::num::Wrapping;
+use tracing::{debug, instrument};
 
 /// Cache entry with metadata
 #[derive(Clone)]
@@ -87,6 +87,7 @@ impl ShardedCache {
     }
 
     /// Get value if valid
+    #[instrument(skip(self))]
     pub async fn get(&self, key: &str) -> Option<Vec<u8>> {
         let idx = self.shard_index(key);
         let shard = &self.shards[idx];
@@ -95,10 +96,12 @@ impl ShardedCache {
         match store.get(key) {
             Some(entry) if self.is_valid(entry) => {
                 self.stats.record_hit();
+                debug!(key, "cache hit");
                 Some(entry.value.clone())
             }
             _ => {
                 self.stats.record_miss();
+                debug!(key, "cache miss");
                 None
             }
         }
@@ -110,6 +113,7 @@ impl ShardedCache {
     }
 
     /// Set value
+    #[instrument(skip(self, value))]
     pub async fn set(&self, key: String, value: Vec<u8>) {
         let idx = self.shard_index(&key);
         let shard = &self.shards[idx];
