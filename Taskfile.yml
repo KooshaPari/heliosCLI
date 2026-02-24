@@ -1,145 +1,55 @@
-# =============================================================================
-# heliosHarness — Root Taskfile
-# =============================================================================
-# Hybrid Rust + Python project using uv + ruff + cargo.
-# Run `task --list` to see all available tasks.
-# =============================================================================
-
+# Helios Router - Taskfile
 version: '3'
 
 vars:
-  PYTHON_SRC: 'harness/src/harness'
-  PYTHON_TESTS: 'harness/tests'
-  RUST_PKG: '.'
+  PYTHONPATH: ./src
 
 tasks:
-  default:
+  install:
+    desc: Install dependencies with uv
     cmds:
-      - task --list
-    silent: true
+      - uv sync
 
-  # -- Python tasks --
-  py:lint:
-    desc: Run ruff linter
+  dev:
+    desc: Start Streamlit dev server
     cmds:
-      - uv run ruff check {{.PYTHON_SRC}} {{.PYTHON_TESTS}}
-
-  py:lint:fix:
-    desc: Run ruff linter with auto-fix
-    cmds:
-      - uv run ruff check --fix {{.PYTHON_SRC}} {{.PYTHON_TESTS}}
-
-  py:format:
-    desc: Format code with ruff
-    cmds:
-      - uv run ruff format {{.PYTHON_SRC}} {{.PYTHON_TESTS}}
-
-  py:format:check:
-    desc: Check formatting without modifying
-    cmds:
-      - uv run ruff format --check {{.PYTHON_SRC}} {{.PYTHON_TESTS}}
-
-  py:typecheck:
-    desc: Run type checker
-    cmds:
-      - uv run ty check {{.PYTHON_SRC}}
-
-  py:test:
-    desc: Run tests
-    cmds:
-      - cd harness && PYTHONPATH=. uv run pytest tests
-
-  py:test:cov:
-    desc: Run tests with coverage
-    cmds:
-      - cd harness && uv run pytest --cov=src/harness --cov-report=term-missing tests
-
-  # -- Rust tasks --
-  rust:check:
-    desc: Check for compilation errors
-    cmds:
-      - cargo check --workspace
-
-  rust:clippy:
-    desc: Run clippy linter
-    cmds:
-      - cargo clippy --workspace -- --allow warnings
-
-  rust:fmt:
-    desc: Format code with rustfmt
-    cmds:
-      - cargo fmt --all
-
-  rust:test:
-    desc: Run tests
-    cmds:
-      - cargo test --workspace
-
-  rust:build:
-    desc: Build project
-    cmds:
-      - cargo build --workspace
-
-  rust:build:release:
-    desc: Build release
-    cmds:
-      - cargo build --release --workspace
-
-  rust:clean:
-    desc: Clean build artifacts
-    cmds:
-      - cargo clean
-
-  # -- Combined tasks --
-  check:
-    desc: "Canonical full-project check"
-    cmds:
-      - task: py:lint
-      - task: py:format:check
-      - task: py:typecheck
-      - task: rust:check
-      - task: rust:clippy
+      - uv run --no-project --with streamlit streamlit run app.py --server.port 8501
+    env:
+      PYTHONPATH: '{{.PYTHONPATH}}'
 
   lint:
-    desc: "Run all linters"
+    desc: Run ruff linter
     cmds:
-      - task: py:lint
-      - task: rust:clippy
-
-  test:
-    desc: "Run all tests"
-    cmds:
-      - task: py:test
-      - task: rust:test
-
-  test:cov:
-    desc: "Run tests with coverage"
-    cmds:
-      - task: py:test:cov
-
-  build:
-    desc: "Build project"
-    cmds:
-      - task: rust:build
-
-  build:release:
-    desc: "Build release"
-    cmds:
-      - task: rust:build:release
+      - uv run --no-project --with ruff ruff check .
 
   format:
-    desc: "Format code"
+    desc: Format code with ruff
     cmds:
-      - task: py:format
-      - task: rust:fmt
+      - uv run --no-project --with ruff ruff format .
+
+  typecheck:
+    desc: Run mypy type checker
+    cmds:
+      - uv run --no-project --with mypy mypy .
+    env:
+      PYTHONPATH: '{{.PYTHONPATH}}'
+
+  test:
+    desc: Run pytest
+    cmds:
+      - uv run --no-project --with pytest pytest -v
+    env:
+      PYTHONPATH: '{{.PYTHONPATH}}'
+
+  check:
+    desc: Run all checks
+    cmds:
+      - task: lint
+      - task: typecheck
+      - task: test
 
   clean:
-    desc: "Clean build artifacts"
+    desc: Clean up cache files
     cmds:
-      - task: rust:clean
-
-  ci:
-    desc: "Run CI pipeline"
-    cmds:
-      - task check
-      - task test
+      - rm -rf .pytest_cache .ruff_cache .mypy_cache
+      - find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true

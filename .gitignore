@@ -3,3 +3,9 @@ target/
 *.dylib
 *.rlib
 *.rmeta
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/

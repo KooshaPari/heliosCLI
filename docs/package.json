@@ -1,5 +1,5 @@
 {
-  "name": "helios-harness-docs",
+  "name": "harbor-local-docs",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,9 +8,6 @@
     "docs:preview": "vitepress preview ."
   },
   "devDependencies": {
-    "vitepress": "^1.6.4"
-  },
-  "overrides": {
-    "esbuild": ">=0.25.0"
+    "vitepress": "^1.6.0"
   }
 }

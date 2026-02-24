@@ -1,3 +1,11 @@
-# heliosHarness
+# harbor-local
 
-Central docs for harness orchestration and operations.
+Local registry and deployment system.
+
+## Overview
+
+Harbor-local provides local container registry and deployment capabilities.
+
+## Project Links
+
+- [GitHub](https://github.com/kooshapari/harbor-local)
