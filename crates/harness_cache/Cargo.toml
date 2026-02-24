@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["sync", "rt"] }
+thiserror = "2"
 
 [dev-dependencies]
 criterion = "0.5"
