@@ -677,6 +677,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "harness_rollback"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "harness_checkpoint",
+ "harness_spec",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tokio",
+ "tokio-test",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "harness_runner"
 version = "0.1.0"
 dependencies = [
