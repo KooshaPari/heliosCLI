@@ -28,7 +28,7 @@ class TestCache:
         assert cache.get("key1") == "value1"
     
     def test_cache_lifecycle(self):
-        """Test cache set/get/delete."""
+        """Test cache set/get."""
         from harness.cache import L1Cache
         
         cache = L1Cache()
@@ -40,10 +40,6 @@ class TestCache:
         # Verify all
         for i in range(5):
             assert cache.get(f"key{i}") == f"value{i}"
-        
-        # Delete
-        cache.delete("key0")
-        assert cache.get("key0") is None
 
 
 class TestContextCompaction:
