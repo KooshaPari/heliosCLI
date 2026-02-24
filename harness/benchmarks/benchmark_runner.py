@@ -432,27 +432,22 @@ if __name__ == "__main__":
     import shutil
     
     parser = argparse.ArgumentParser(description="Standardized Benchmark Runner")
+    parser.add_argument("--harness", type=str, default="cliproxy", 
+                        help="Harness to test: cliproxy, codex, claude, droid, or 'all' for all")
     parser.add_argument("--agents", "-n", type=int, default=6)
     parser.add_argument("--prompt", "-p", type=str, default="Say hello and be brief")
-    parser.add_argument("--harnesses", type=str, help="Comma-separated: cliproxy,codex-cli,droid,claude")
     parser.add_argument("--models", type=str, help="Comma-separated: MiniMax-M2.5,MiniMax-M2.5-highspeed")
-    parser.add_argument("--matrix", "-m", action="store_true", help="Run full matrix")
-    parser.add_argument("--with-optional", action="store_true", help="Include droid, claude")
+    parser.add_argument("--json", "-j", action="store_true", help="JSON output")
     parser.add_argument("--json", "-j", action="store_true", help="JSON output")
     
     args = parser.parse_args()
     
-    # Determine harnesses
-    if args.matrix or args.harnesses:
-        if args.harnesses:
-            harness_list = [h.strip() for h in args.harnesses.split(",")]
-        else:
-            harness_list = ["cliproxy", "codex-cli"]
-        
-        if args.with_optional:
-            harness_list.extend(["droid", "claude"])
+    # Determine harness (new --harness primary param with "all" support)
+    harness_input = args.harness.lower() if args.harness else "cliproxy"
+    if harness_input == "all":
+        harness_list = ["cliproxy", "codex", "claude", "droid"]
     else:
-        harness_list = ["cliproxy"]
+        harness_list = [harness_input]
     
     # Determine models
     if args.models:
