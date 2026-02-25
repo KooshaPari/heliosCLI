@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    # Native extensions
+    # Native extensions (these can be built)
     "crates/harness-native",
     "crates/harness_zig",
 ]
