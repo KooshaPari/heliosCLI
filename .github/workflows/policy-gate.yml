@@ -44,9 +44,8 @@ jobs:
 
           # 2) Prevent merge commits in PR branch (exclude GitHub's synthetic merge commit).
           git fetch origin "$BASE_REF" --depth=1 || true
-          # Use the actual PR head ref, not the GitHub merge commit (HEAD).
-          git fetch origin "$HEAD_REF" --depth=50 || true
-          MERGES=$(git rev-list --merges "origin/$BASE_REF..origin/$HEAD_REF" 2>/dev/null || true)
+          PR_HEAD="${{ github.event.pull_request.head.sha }}"
+          MERGES=$(git rev-list --merges "origin/$BASE_REF..$PR_HEAD" || true)
           if [[ -n "$MERGES" ]]; then
             echo "ERROR: merge commits detected in PR branch:"
             echo "$MERGES"
