@@ -312,11 +312,14 @@ impl TextArea {
                 modifiers,
                 ..
             } if is_altgr(modifiers) => self.insert_str(&c.to_string()),
+            // Some terminals encode Option+Backspace as Ctrl+Backspace.
             KeyEvent {
                 code: KeyCode::Backspace,
-                modifiers: KeyModifiers::ALT,
+                modifiers,
                 ..
-            } => self.delete_backward_word(),
+            } if modifiers.intersects(KeyModifiers::ALT | KeyModifiers::CONTROL) => {
+                self.delete_backward_word()
+            }
             KeyEvent {
                 code: KeyCode::Backspace,
                 ..
@@ -326,12 +329,15 @@ impl TextArea {
                 modifiers: KeyModifiers::CONTROL,
                 ..
             } => self.delete_backward(1),
+            // Some terminals encode Option+Delete as Ctrl+Delete.
             KeyEvent {
                 code: KeyCode::Delete,
-                modifiers: KeyModifiers::ALT,
+                modifiers,
                 ..
+            } if modifiers.intersects(KeyModifiers::ALT | KeyModifiers::CONTROL) => {
+                self.delete_forward_word()
             }
-            | KeyEvent {
+            KeyEvent {
                 code: KeyCode::Char('d'),
                 modifiers: KeyModifiers::ALT,
                 ..

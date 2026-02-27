@@ -1887,6 +1887,14 @@ impl ChatWidget {
         Some(combined)
     }
 
+    /// Returns true when the queued-message binding is Alt+Up and the event is
+    /// Ctrl+Up (common terminal encoding for Option+Up).
+    fn queued_message_ctrl_up_fallback_matches(&self, event: KeyEvent) -> bool {
+        self.queued_message_edit_binding == key_hint::alt(KeyCode::Up)
+            && event.code == KeyCode::Up
+            && event.modifiers == KeyModifiers::CONTROL
+    }
+
     fn restore_user_message_to_composer(&mut self, user_message: UserMessage) {
         let UserMessage {
             text,
@@ -3308,8 +3316,11 @@ impl ChatWidget {
             _ => {}
         }
 
+        // Terminals can encode Option+Up as Alt+Up or Ctrl+Up (e.g. CSI 1;5A),
+        // so accept either modifier for queued-message restore.
         if key_event.kind == KeyEventKind::Press
-            && self.queued_message_edit_binding.is_press(key_event)
+            && (self.queued_message_edit_binding.is_press(key_event)
+                || self.queued_message_ctrl_up_fallback_matches(key_event))
             && !self.queued_user_messages.is_empty()
         {
             if let Some(user_message) = self.queued_user_messages.pop_back() {
