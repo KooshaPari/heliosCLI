@@ -1,3 +1,9 @@
+## Workspace strategy (canonical)
+
+This fork treats `codex-rs` as the sole active Rust workspace and CI surface.
+The historical `rust_core` mirror has been de-duplicated out of the active
+execution path.
+
 ## Installing & building
 
 ### System requirements

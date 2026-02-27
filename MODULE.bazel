@@ -1,4 +1,4 @@
-module(name = "codex")
+module(name = "helioscli")
 
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "toolchains_llvm_bootstrapped", version = "0.5.6")
@@ -164,16 +164,16 @@ crate.annotation(
     build_script_env = {
         "BINDGEN_EXTRA_CLANG_ARGS": "-isystem $(location @toolchains_llvm_bootstrapped//:builtin_headers)",
         "COREAUDIO_SDK_PATH": "$(location @macosx15.4.sdk//sysroot)",
-        "LIBCLANG_PATH": "$(location @codex//:clang)",
+        "LIBCLANG_PATH": "$(location @helioscli//:clang)",
     },
     build_script_tools = [
-        "@codex//:clang",
+        "@helioscli//:clang",
         "@toolchains_llvm_bootstrapped//:builtin_headers",
     ],
     crate = "coreaudio-sys",
 )
 
-inject_repo(crate, "codex", "toolchains_llvm_bootstrapped", "macosx15.4.sdk")
+inject_repo(crate, "helioscli", "toolchains_llvm_bootstrapped", "macosx15.4.sdk")
 
 # Fix readme inclusions
 crate.annotation(

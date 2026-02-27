@@ -1,6 +1,7 @@
 # Merged Fragmented Markdown
 
-## Source: /Users/kooshapari/temp-PRODVERCEL/485/kush/heliosHarness/clones/codex/docs
+## Source: heliosCLI/docs
+
 ## Source: CLA.md
 
 # Individual Contributor License Agreement (v1.0, OpenAI)
@@ -379,8 +380,8 @@ The GitHub Release also contains a [DotSlash](https://dotslash-cli.com/) file fo
 
 ```bash
 # Clone the repository and navigate to the root of the Cargo workspace.
-git clone https://github.com/openai/codex.git
-cd codex/codex-rs
+git clone https://github.com/openai/helios-cli.git
+cd helios-cli/helios-rs
 
 # Install the Rust toolchain, if necessary.
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
@@ -392,18 +393,19 @@ cargo install just
 # Optional: install nextest for the `just test` helper
 cargo install --locked cargo-nextest
 
-# Build Codex.
+# Build Helios CLI.
 cargo build
 
 # Launch the TUI with a sample prompt.
-cargo run --bin codex -- "explain this codebase to me"
+cargo run --bin helios -- "explain this codebase to me"
 
-# After making changes, use the root justfile helpers (they default to codex-rs):
+# After making changes, use the root justfile helpers (they default to helios-rs):
 just fmt
 just fix -p <crate-you-touched>
 
 # Run the relevant tests (project-specific is fastest), for example:
-cargo test -p codex-tui
+# Run tests in the helios tui crate:
+cargo test -p helios-tui
 # If you have cargo-nextest installed, `just test` runs the test suite via nextest:
 just test
 # Avoid `--all-features` for routine local runs because it increases build

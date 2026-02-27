@@ -1,0 +1,10 @@
+load("//:defs.bzl", "helios_rust_crate", "multiplatform_binaries")
+
+helios_rust_crate(
+    name = "cli",
+    crate_name = "helios_cli",
+)
+
+multiplatform_binaries(
+    name = "helios",
+)

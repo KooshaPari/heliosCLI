@@ -23,6 +23,11 @@ use super::EnableAlternateScroll;
 use super::Terminal;
 
 pub const SUSPEND_KEY: key_hint::KeyBinding = key_hint::ctrl(KeyCode::Char('z'));
+pub const SUSPEND_KEY_ALT: key_hint::KeyBinding = key_hint::ctrl(KeyCode::Char('b'));
+
+pub(crate) fn is_suspend_key(event: crossterm::event::KeyEvent) -> bool {
+    SUSPEND_KEY.is_press(event) || SUSPEND_KEY_ALT.is_press(event)
+}
 
 /// Coordinates suspend/resume handling so the TUI can restore terminal context after SIGTSTP.
 ///

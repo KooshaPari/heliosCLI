@@ -32,11 +32,13 @@ jobs:
 
       - name: Stage npm package
         id: stage_npm_package
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           # Use a rust-release version that includes all native binaries.
+          # This step is expected to fail in forks without upstream release artifacts.
           CODEX_VERSION=0.74.0
           OUTPUT_DIR="${RUNNER_TEMP}"
           python3 ./scripts/stage_npm_packages.py \
@@ -47,6 +49,7 @@ jobs:
           echo "pack_output=$PACK_OUTPUT" >> "$GITHUB_OUTPUT"
 
       - name: Upload staged npm package artifact
+        if: steps.stage_npm_package.outcome == 'success'
         uses: actions/upload-artifact@v6
         with:
           name: codex-npm-staging

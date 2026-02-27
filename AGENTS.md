@@ -180,3 +180,10 @@ docs/
   - On rate-limit response, stop sending new triggers in that repo, wait 15 minutes, then resume queue processing.
   - Do not post duplicate trigger comments while a prior trigger is pending.
 
+- Update docs/examples when API behavior changes (at minimum `app-server/README.md`).
+- Regenerate schema fixtures when API shapes change:
+  `just write-app-server-schema`
+  (and `just write-app-server-schema --experimental` when experimental API fixtures are affected).
+- Validate with `cargo test -p codex-app-server-protocol`.
+- Avoid boilerplate tests that only assert experimental field markers for individual
+  request fields in `common.rs`; rely on schema generation/tests and behavioral coverage instead.

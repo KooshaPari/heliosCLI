@@ -57,6 +57,15 @@ struct SkillMetadataFile {
     permissions: Option<PermissionProfile>,
 }
 
+#[derive(Default)]
+struct LoadedSkillMetadata {
+    interface: Option<SkillInterface>,
+    dependencies: Option<SkillDependencies>,
+    policy: Option<SkillPolicy>,
+    permission_profile: Option<PermissionProfile>,
+    permissions: Option<Permissions>,
+}
+
 #[derive(Debug, Default, Deserialize)]
 struct Interface {
     display_name: Option<String>,
@@ -520,7 +529,13 @@ fn parse_skill_file(path: &Path, scope: SkillScope) -> Result<SkillMetadata, Ski
         .as_deref()
         .map(sanitize_single_line)
         .filter(|value| !value.is_empty());
-    let (interface, dependencies, policy, permissions) = load_skill_metadata(path);
+    let LoadedSkillMetadata {
+        interface,
+        dependencies,
+        policy,
+        permission_profile,
+        permissions,
+    } = load_skill_metadata(path);
 
     validate_len(&name, MAX_NAME_LEN, "name")?;
     validate_len(&description, MAX_DESCRIPTION_LEN, "description")?;
@@ -541,29 +556,23 @@ fn parse_skill_file(path: &Path, scope: SkillScope) -> Result<SkillMetadata, Ski
         interface,
         dependencies,
         policy,
+        permission_profile,
         permissions,
         path_to_skills_md: resolved_path,
         scope,
     })
 }
 
-fn load_skill_metadata(
-    skill_path: &Path,
-) -> (
-    Option<SkillInterface>,
-    Option<SkillDependencies>,
-    Option<SkillPolicy>,
-    Option<Permissions>,
-) {
+fn load_skill_metadata(skill_path: &Path) -> LoadedSkillMetadata {
     // Fail open: optional metadata should not block loading SKILL.md.
     let Some(skill_dir) = skill_path.parent() else {
-        return (None, None, None, None);
+        return LoadedSkillMetadata::default();
     };
     let metadata_path = skill_dir
         .join(SKILLS_METADATA_DIR)
         .join(SKILLS_METADATA_FILENAME);
     if !metadata_path.exists() {
-        return (None, None, None, None);
+        return LoadedSkillMetadata::default();
     }
 
     let contents = match fs::read_to_string(&metadata_path) {
@@ -574,7 +583,7 @@ fn load_skill_metadata(
                 path = metadata_path.display(),
                 label = SKILLS_METADATA_FILENAME
             );
-            return (None, None, None, None);
+            return LoadedSkillMetadata::default();
         }
     };
 
@@ -586,7 +595,7 @@ fn load_skill_metadata(
                 path = metadata_path.display(),
                 label = SKILLS_METADATA_FILENAME
             );
-            return (None, None, None, None);
+            return LoadedSkillMetadata::default();
         }
     };
 
@@ -596,13 +605,15 @@ fn load_skill_metadata(
         policy,
         permissions,
     } = parsed;
+    let permission_profile = permissions.clone().filter(|profile| !profile.is_empty());
 
-    (
-        resolve_interface(interface, skill_dir),
-        resolve_dependencies(dependencies),
-        resolve_policy(policy),
-        compile_permission_profile(skill_dir, permissions),
-    )
+    LoadedSkillMetadata {
+        interface: resolve_interface(interface, skill_dir),
+        dependencies: resolve_dependencies(dependencies),
+        policy: resolve_policy(policy),
+        permission_profile,
+        permissions: compile_permission_profile(skill_dir, permissions),
+    }
 }
 
 fn resolve_interface(interface: Option<Interface>, skill_dir: &Path) -> Option<SkillInterface> {
@@ -843,6 +854,8 @@ mod tests {
     use crate::config_loader::ConfigRequirementsToml;
     use codex_config::CONFIG_TOML_FILE;
     use codex_protocol::config_types::TrustLevel;
+    use codex_protocol::models::FileSystemPermissions;
+    use codex_protocol::models::PermissionProfile;
     use codex_protocol::protocol::SkillScope;
     use codex_utils_absolute_path::AbsolutePathBuf;
     use pretty_assertions::assert_eq;
@@ -1062,6 +1075,7 @@ mod tests {
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::User,
@@ -1210,6 +1224,7 @@ mod tests {
                     ],
                 }),
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::User,
@@ -1266,6 +1281,7 @@ interface:
                 }),
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(skill_path.as_path()),
                 scope: SkillScope::User,
@@ -1355,7 +1371,6 @@ permissions:
   file_system:
     read:
       - "./data"
-      - "./data"
     write:
       - "./output"
 "#,
@@ -1370,6 +1385,17 @@ permissions:
             outcome.errors
         );
         assert_eq!(outcome.skills.len(), 1);
+        assert_eq!(
+            outcome.skills[0].permission_profile,
+            Some(PermissionProfile {
+                network: Some(true),
+                file_system: Some(FileSystemPermissions {
+                    read: Some(vec![PathBuf::from("./data")]),
+                    write: Some(vec![PathBuf::from("./output")]),
+                }),
+                macos: None,
+            })
+        );
         #[cfg(target_os = "macos")]
         let macos_seatbelt_profile_extensions =
             Some(crate::seatbelt_permissions::MacOsSeatbeltProfileExtensions::default());
@@ -1458,6 +1484,7 @@ permissions: {}
             windows_sandbox_mode: None,
             macos_seatbelt_profile_extensions: None,
         });
+        assert_eq!(outcome.skills[0].permission_profile, None);
         assert_eq!(outcome.skills[0].permissions, expected);
     }
 
@@ -1600,6 +1627,7 @@ permissions:
                 }),
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::User,
@@ -1641,6 +1669,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::User,
@@ -1695,6 +1724,7 @@ permissions:
                 }),
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::User,
@@ -1737,6 +1767,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::User,
@@ -1782,6 +1813,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&shared_skill_path),
                 scope: SkillScope::User,
@@ -1854,6 +1886,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::User,
@@ -1891,6 +1924,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&shared_skill_path),
                 scope: SkillScope::Admin,
@@ -1932,6 +1966,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&linked_skill_path),
                 scope: SkillScope::Repo,
@@ -2000,6 +2035,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&within_depth_path),
                 scope: SkillScope::User,
@@ -2028,6 +2064,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::User,
@@ -2060,6 +2097,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::User,
@@ -2173,6 +2211,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::Repo,
@@ -2209,6 +2248,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::Repo,
@@ -2263,6 +2303,7 @@ permissions:
                     interface: None,
                     dependencies: None,
                     policy: None,
+                    permission_profile: None,
                     permissions: None,
                     path_to_skills_md: normalized(&nested_skill_path),
                     scope: SkillScope::Repo,
@@ -2274,6 +2315,7 @@ permissions:
                     interface: None,
                     dependencies: None,
                     policy: None,
+                    permission_profile: None,
                     permissions: None,
                     path_to_skills_md: normalized(&root_skill_path),
                     scope: SkillScope::Repo,
@@ -2314,6 +2356,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::Repo,
@@ -2352,6 +2395,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::Repo,
@@ -2394,6 +2438,7 @@ permissions:
                     interface: None,
                     dependencies: None,
                     policy: None,
+                    permission_profile: None,
                     permissions: None,
                     path_to_skills_md: normalized(&repo_skill_path),
                     scope: SkillScope::Repo,
@@ -2405,6 +2450,7 @@ permissions:
                     interface: None,
                     dependencies: None,
                     policy: None,
+                    permission_profile: None,
                     permissions: None,
                     path_to_skills_md: normalized(&user_skill_path),
                     scope: SkillScope::User,
@@ -2470,6 +2516,7 @@ permissions:
                     interface: None,
                     dependencies: None,
                     policy: None,
+                    permission_profile: None,
                     permissions: None,
                     path_to_skills_md: first_path,
                     scope: SkillScope::Repo,
@@ -2481,6 +2528,7 @@ permissions:
                     interface: None,
                     dependencies: None,
                     policy: None,
+                    permission_profile: None,
                     permissions: None,
                     path_to_skills_md: second_path,
                     scope: SkillScope::Repo,
@@ -2553,6 +2601,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::Repo,
@@ -2612,6 +2661,7 @@ permissions:
                 interface: None,
                 dependencies: None,
                 policy: None,
+                permission_profile: None,
                 permissions: None,
                 path_to_skills_md: normalized(&skill_path),
                 scope: SkillScope::System,

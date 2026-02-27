@@ -42,11 +42,13 @@ jobs:
             fi
           fi
 
-          # 2) Prevent merge commits in PR branch diff range.
+          # 2) Prevent merge commits in PR branch (exclude GitHub's synthetic merge commit).
           git fetch origin "$BASE_REF" --depth=1 || true
-          MERGES=$(git rev-list --merges "origin/$BASE_REF..HEAD" || true)
+          # Use the actual PR head ref, not the GitHub merge commit (HEAD).
+          git fetch origin "$HEAD_REF" --depth=50 || true
+          MERGES=$(git rev-list --merges "origin/$BASE_REF..origin/$HEAD_REF" 2>/dev/null || true)
           if [[ -n "$MERGES" ]]; then
-            echo "ERROR: merge commits detected in PR diff range:"
+            echo "ERROR: merge commits detected in PR branch:"
             echo "$MERGES"
             exit 1
           fi

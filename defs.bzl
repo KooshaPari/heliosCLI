@@ -28,7 +28,7 @@ def multiplatform_binaries(name, platforms = PLATFORMS):
         tags = ["manual"],
     )
 
-def codex_rust_crate(
+def helios_rust_crate(
         name,
         crate_name,
         crate_features = [],

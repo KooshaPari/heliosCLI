@@ -5,6 +5,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      skip_rust_ci:
+        description: "Skip Rust CI jobs (skip lint/build/tests) for this manual run"
+        required: false
+        default: false
+        type: boolean
 
 # CI builds in debug (dev) for faster signal.
 
@@ -16,6 +22,9 @@ jobs:
     outputs:
       codex: ${{ steps.detect.outputs.codex }}
       workflows: ${{ steps.detect.outputs.workflows }}
+      rust_core: ${{ steps.detect.outputs.rust_core }}
+      feature_drift: ${{ steps.detect.outputs.feature_drift }}
+      skip_rust_ci: ${{ steps.detect.outputs.skip_rust_ci }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -25,6 +34,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          skip_rust_ci='false'
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.skip_rust_ci || 'false' }}" == "true" ]]; then
+            skip_rust_ci='true'
+          elif [[ "${{ vars.SKIP_RUST_CI || 'false' }}" == "true" ]]; then
+            skip_rust_ci='true'
+          fi
 
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             BASE_SHA='${{ github.event.pull_request.base.sha }}'
@@ -33,27 +48,95 @@ jobs:
             echo "Head SHA: $HEAD_SHA"
             # List files changed between base and PR head
             mapfile -t files < <(git diff --name-only --no-renames "$BASE_SHA" "$HEAD_SHA")
+          elif [[ "${{ github.event_name }}" == "push" ]]; then
+            # For push events, compare against previous commit so we catch legacy edits.
+            if [[ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
+              mapfile -t files < <(git diff --name-only --no-renames origin/main HEAD)
+            else
+              mapfile -t files < <(git diff --name-only --no-renames "${{ github.event.before }}" "${{ github.sha }}")
+            fi
           else
             # On push / manual runs, default to running everything
             files=("codex-rs/force" ".github/force")
           fi
 
           codex=false
+          rust_core=false
           workflows=false
+          feature_drift=false
           for f in "${files[@]}"; do
             [[ $f == codex-rs/* ]] && codex=true
             [[ $f == .github/* ]] && workflows=true
+            [[ $f == rust_core/* ]] && rust_core=true
+            [[ $f == codex-rs/Cargo.toml ]] && feature_drift=true
+            [[ $f == codex-rs/*/Cargo.toml ]] && feature_drift=true
+            [[ $f == codex-rs/core/src/features.rs ]] && feature_drift=true
+            [[ $f == codex-rs/cli/src/main.rs ]] && feature_drift=true
+            [[ $f == codex-rs/cli/src/lib.rs ]] && feature_drift=true
+            [[ $f == codex-rs/exec/src/main.rs ]] && feature_drift=true
+            [[ $f == codex-rs/exec/src/lib.rs ]] && feature_drift=true
+            [[ $f == codex-rs/tui/src/main.rs ]] && feature_drift=true
+            [[ $f == codex-rs/tui/src/cli.rs ]] && feature_drift=true
           done
 
           echo "codex=$codex" >> "$GITHUB_OUTPUT"
+          echo "rust_core=$rust_core" >> "$GITHUB_OUTPUT"
           echo "workflows=$workflows" >> "$GITHUB_OUTPUT"
+          echo "feature_drift=$feature_drift" >> "$GITHUB_OUTPUT"
+          echo "skip_rust_ci=$skip_rust_ci" >> "$GITHUB_OUTPUT"
+
+          if [[ "$rust_core" == "true" ]]; then
+            echo "::warning title=Legacy rust_core touched::This fork treats `codex-rs` as the only active Rust workspace. `rust_core` is de-mirrored legacy and should be treated as inert."
+          fi
+          if [[ "$skip_rust_ci" == "true" ]]; then
+            echo "::warning title=Rust CI override active::workflow skip flag is set for this run; heavy Rust jobs will be skipped."
+          fi
+
+  # --- Drift detection for policy + lockfile sync --------------------------------
+  drift_detection:
+    name: Drift detection
+    runs-on: ubuntu-24.04
+    needs: changed
+    if: ${{ needs.changed.outputs.skip_rust_ci != 'true' && (needs.changed.outputs.codex == 'true' || needs.changed.outputs.workflows == 'true' || github.event_name == 'push') }}
+    defaults:
+      run:
+        working-directory: codex-rs
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@1.93.0
+
+      - name: Enforce Cargo.lock/manifest sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! cargo metadata --locked --format-version=1 >/dev/null; then
+            echo "::error::Lockfile drift detected. Regenerate lockfile changes with `cargo update` and commit updated `Cargo.lock`."
+            exit 1
+          fi
+
+      - name: Enforce MODULE.bazel.lock sync
+        continue-on-error: true
+        run: ./scripts/check-module-bazel-lock.sh
+        working-directory: ${{ github.workspace }}
+
+      - name: Run feature-matrix guard for feature-sensitive changes
+        if: ${{ needs.changed.outputs.feature_drift == 'true' }}
+        run: just feature-matrix
+
+      - name: Enforce no rust_core edits
+        if: ${{ needs.changed.outputs.rust_core == 'true' }}
+        shell: bash
+        run: |
+          echo "::error::Legacy `rust_core` path was edited."
+          echo "::error::This fork is de-mirrored. Use `codex-rs` as the active Rust workspace."
+          exit 1
 
   # --- CI that doesn't need specific targets ---------------------------------
   general:
     name: Format / etc
     runs-on: ubuntu-24.04
     needs: changed
-    if: ${{ needs.changed.outputs.codex == 'true' || needs.changed.outputs.workflows == 'true' || github.event_name == 'push' }}
+    if: ${{ needs.changed.outputs.skip_rust_ci != 'true' && (needs.changed.outputs.codex == 'true' || needs.changed.outputs.workflows == 'true' || github.event_name == 'push') }}
     defaults:
       run:
         working-directory: codex-rs
@@ -69,7 +152,7 @@ jobs:
     name: cargo shear
     runs-on: ubuntu-24.04
     needs: changed
-    if: ${{ needs.changed.outputs.codex == 'true' || needs.changed.outputs.workflows == 'true' || github.event_name == 'push' }}
+    if: ${{ needs.changed.outputs.skip_rust_ci != 'true' && (needs.changed.outputs.codex == 'true' || needs.changed.outputs.workflows == 'true' || github.event_name == 'push') }}
     defaults:
       run:
         working-directory: codex-rs
@@ -90,7 +173,7 @@ jobs:
     timeout-minutes: 30
     needs: changed
     # Keep job-level if to avoid spinning up runners when not needed
-    if: ${{ needs.changed.outputs.codex == 'true' || needs.changed.outputs.workflows == 'true' || github.event_name == 'push' }}
+    if: ${{ needs.changed.outputs.skip_rust_ci != 'true' && (needs.changed.outputs.codex == 'true' || needs.changed.outputs.workflows == 'true' || github.event_name == 'push') }}
     defaults:
       run:
         working-directory: codex-rs
@@ -106,80 +189,30 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-15-xlarge
+          - runner: macos-latest
             target: aarch64-apple-darwin
-            profile: dev
-          - runner: macos-15-xlarge
-            target: x86_64-apple-darwin
             profile: dev
           - runner: ubuntu-24.04
             target: x86_64-unknown-linux-musl
             profile: dev
-            runs_on:
-              group: codex-runners
-              labels: codex-linux-x64
           - runner: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             profile: dev
-            runs_on:
-              group: codex-runners
-              labels: codex-linux-x64
-          - runner: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-musl
-            profile: dev
-            runs_on:
-              group: codex-runners
-              labels: codex-linux-arm64
-          - runner: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-            profile: dev
-            runs_on:
-              group: codex-runners
-              labels: codex-linux-arm64
-          - runner: windows-x64
+          - runner: windows-latest
             target: x86_64-pc-windows-msvc
             profile: dev
-            runs_on:
-              group: codex-runners
-              labels: codex-windows-x64
-          - runner: windows-arm64
-            target: aarch64-pc-windows-msvc
-            profile: dev
-            runs_on:
-              group: codex-runners
-              labels: codex-windows-arm64
 
           # Also run representative release builds on Mac and Linux because
           # there could be release-only build errors we want to catch.
-          # Hopefully this also pre-populates the build cache to speed up
-          # releases.
-          - runner: macos-15-xlarge
+          - runner: macos-latest
             target: aarch64-apple-darwin
             profile: release
           - runner: ubuntu-24.04
             target: x86_64-unknown-linux-musl
             profile: release
-            runs_on:
-              group: codex-runners
-              labels: codex-linux-x64
-          - runner: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-musl
-            profile: release
-            runs_on:
-              group: codex-runners
-              labels: codex-linux-arm64
-          - runner: windows-x64
+          - runner: windows-latest
             target: x86_64-pc-windows-msvc
             profile: release
-            runs_on:
-              group: codex-runners
-              labels: codex-windows-x64
-          - runner: windows-arm64
-            target: aarch64-pc-windows-msvc
-            profile: release
-            runs_on:
-              group: codex-runners
-              labels: codex-windows-arm64
 
     steps:
       - uses: actions/checkout@v6
@@ -455,7 +488,7 @@ jobs:
     runs-on: ${{ matrix.runs_on || matrix.runner }}
     timeout-minutes: 30
     needs: changed
-    if: ${{ needs.changed.outputs.codex == 'true' || needs.changed.outputs.workflows == 'true' || github.event_name == 'push' }}
+    if: ${{ needs.changed.outputs.skip_rust_ci != 'true' && (needs.changed.outputs.codex == 'true' || needs.changed.outputs.workflows == 'true' || github.event_name == 'push') }}
     defaults:
       run:
         working-directory: codex-rs
@@ -469,33 +502,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: macos-15-xlarge
+          - runner: macos-latest
             target: aarch64-apple-darwin
             profile: dev
           - runner: ubuntu-24.04
             target: x86_64-unknown-linux-gnu
             profile: dev
-            runs_on:
-              group: codex-runners
-              labels: codex-linux-x64
-          - runner: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
-            profile: dev
-            runs_on:
-              group: codex-runners
-              labels: codex-linux-arm64
-          - runner: windows-x64
+          - runner: windows-latest
             target: x86_64-pc-windows-msvc
             profile: dev
-            runs_on:
-              group: codex-runners
-              labels: codex-windows-x64
-          - runner: windows-arm64
-            target: aarch64-pc-windows-msvc
-            profile: dev
-            runs_on:
-              group: codex-runners
-              labels: codex-windows-arm64
 
     steps:
       - uses: actions/checkout@v6
@@ -657,7 +672,7 @@ jobs:
   # --- Gatherer job that you mark as the ONLY required status -----------------
   results:
     name: CI results (required)
-    needs: [changed, general, cargo_shear, lint_build, tests]
+    needs: [changed, drift_detection, general, cargo_shear, lint_build, tests]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -668,15 +683,22 @@ jobs:
           echo "shear  : ${{ needs.cargo_shear.result }}"
           echo "lint   : ${{ needs.lint_build.result }}"
           echo "tests  : ${{ needs.tests.result }}"
+          echo "drift  : ${{ needs.drift_detection.result }}"
 
           # If nothing relevant changed (PR touching only root README, etc.),
           # declare success regardless of other jobs.
+          if [[ '${{ needs.changed.outputs.skip_rust_ci }}' == 'true' ]]; then
+            echo 'Rust CI intentionally skipped for this run.'
+            exit 0
+          fi
+
           if [[ '${{ needs.changed.outputs.codex }}' != 'true' && '${{ needs.changed.outputs.workflows }}' != 'true' && '${{ github.event_name }}' != 'push' ]]; then
             echo 'No relevant changes -> CI not required.'
             exit 0
           fi
 
           # Otherwise require the jobs to have succeeded
+          [[ '${{ needs.drift_detection.result }}' == 'success' ]] || { echo 'drift_detection failed'; exit 1; }
           [[ '${{ needs.general.result }}' == 'success' ]] || { echo 'general failed'; exit 1; }
           [[ '${{ needs.cargo_shear.result }}' == 'success' ]] || { echo 'cargo_shear failed'; exit 1; }
           [[ '${{ needs.lint_build.result }}' == 'success' ]] || { echo 'lint_build failed'; exit 1; }

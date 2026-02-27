@@ -192,7 +192,7 @@ Each run writes under `codex-rs/perf-results/<name>-<timestamp>/`:
 - `summary.vmmap_snapshots`: start/mid/end physical footprint progression from `vmmap`.
 - `summary.xctrace`: trace artifacts and aggregated top hotspot frames.
 - `summary.queue_cancel_metrics`: datapoint totals for OTEL metric names matching
-  `queue|queued|cancel|cancell|interrupt|abort`.
+  `queue|queued|cancel|cancelled|interrupt|abort`.
 - `summary.successful_runs_total` / `summary.failed_runs_total`: aggregate worker outcomes.
 - `profile`: `{name, phase, concurrency, warmup, iterations}` metadata.
 - For `--concurrency > 1`, each iteration record includes `worker_results` with

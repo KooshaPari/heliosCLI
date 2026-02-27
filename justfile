@@ -82,6 +82,15 @@ write-config-schema:
 write-app-server-schema *args:
     cargo run -p codex-app-server-protocol --bin write_schema_fixtures -- "$@"
 
+# Feature-layer smoke checks for compile-time and optional adapters.
+# Keep this intentionally small and fast so it runs both in PRs and local CI loops.
+feature-matrix:
+    cargo check -p codex-tui --no-default-features
+    cargo check -p codex-tui --no-default-features --features debug-logs
+    cargo check -p codex-cloud-tasks-client --no-default-features
+    cargo check -p codex-cloud-tasks-client --no-default-features --features mock
+    cargo check -p codex-otel --features disable-default-metrics-exporter
+
 # Tail logs from the state SQLite database
 log *args:
     if [ "${1:-}" = "--" ]; then shift; fi; cargo run -p codex-state --bin logs_client -- "$@"

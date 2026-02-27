@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Any
 import xml.etree.ElementTree as ET
 
-QUEUE_CANCEL_RE = re.compile(r"queue|queued|cancel|cancell|interrupt|abort")
+QUEUE_CANCEL_RE = re.compile(r"queue|queued|cancel|cancelled|interrupt|abort")
 TURN_LATENCY_RE = re.compile(r"turn.*(duration|latency)|codex\.turn", re.IGNORECASE)
 ACTION_LATENCY_RE = re.compile(
     r"(tool|exec_command|apply_patch|search|agent).*(duration|latency)|codex\.tool",
