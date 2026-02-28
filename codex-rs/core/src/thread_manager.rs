@@ -563,7 +563,7 @@ impl ThreadManagerState {
         session_source: SessionSource,
         dynamic_tools: Vec<codex_protocol::dynamic_tools::DynamicToolSpec>,
         persist_extended_history: bool,
-        metrics_service_name: Option<String>,
+        _metrics_service_name: Option<String>,
     ) -> CodexResult<NewThread> {
         let watch_registration = self.file_watcher.register_config(&config);
         let CodexSpawnOk {
@@ -579,7 +579,6 @@ impl ThreadManagerState {
             agent_control,
             dynamic_tools,
             persist_extended_history,
-            metrics_service_name,
         )
         .await?;
         self.finalize_thread_spawn(codex, thread_id, watch_registration)

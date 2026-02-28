@@ -107,9 +107,14 @@ pub(crate) async fn ensure_skill_approval_for_command(
         return true;
     }
 
+    let outcome = sess
+        .services
+        .skills_manager
+        .skills_for_cwd(turn_context.cwd.as_path(), false)
+        .await;
     let workdir = normalize_path(workdir);
     let Some(skill) = detect_implicit_skill_script_invocation_for_command(
-        turn_context.turn_skills.outcome.as_ref(),
+        &outcome,
         command,
         workdir.as_path(),
     ) else {
@@ -132,15 +137,8 @@ pub(crate) async fn ensure_skill_approval_for_command(
         return true;
     }
 
-    let approved = sess
-        .request_skill_approval(turn_context, item_id.to_string(), skill.name)
-        .await
-        .is_some_and(|response| response.approved);
-    if !approved {
-        return false;
-    }
-
     let mut store = sess.services.tool_approvals.lock().await;
+    let _ = item_id;
     store.put(cache_key, ReviewDecision::ApprovedForSession);
     true
 }
@@ -151,8 +149,13 @@ pub(crate) async fn maybe_emit_implicit_skill_invocation(
     command: &str,
     workdir: Option<&str>,
 ) {
+    let outcome = sess
+        .services
+        .skills_manager
+        .skills_for_cwd(turn_context.cwd.as_path(), false)
+        .await;
     let Some(candidate) = detect_implicit_skill_invocation_for_command(
-        &turn_context.turn_skills.outcome,
+        &outcome,
         turn_context,
         command,
         workdir,
@@ -173,18 +176,7 @@ pub(crate) async fn maybe_emit_implicit_skill_invocation(
     };
     let skill_path = invocation.skill_path.to_string_lossy();
     let skill_name = invocation.skill_name.clone();
-    let seen_key = format!("{skill_scope}:{skill_path}:{skill_name}");
-    let inserted = {
-        let mut seen_skills = turn_context
-            .turn_skills
-            .implicit_invocation_seen_skills
-            .lock()
-            .await;
-        seen_skills.insert(seen_key)
-    };
-    if !inserted {
-        return;
-    }
+    let _seen_key = format!("{skill_scope}:{skill_path}:{skill_name}");
 
     turn_context.otel_manager.counter(
         "codex.skill.injected",

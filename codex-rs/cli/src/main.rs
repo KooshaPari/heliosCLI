@@ -3,6 +3,7 @@ use clap::CommandFactory;
 use clap::Parser;
 use clap_complete::Shell;
 use clap_complete::generate;
+use codex_arg0::Arg0DispatchPaths;
 use codex_arg0::arg0_dispatch_or_else;
 use codex_chatgpt::apply_command::ApplyCommand;
 use codex_chatgpt::apply_command::run_apply_command;
@@ -543,11 +544,8 @@ fn stage_str(stage: codex_core::features::Stage) -> &'static str {
 }
 
 fn main() -> anyhow::Result<()> {
-    if codex_core::maybe_run_zsh_exec_wrapper_mode()? {
-        return Ok(());
-    }
     let cli = MultitoolCli::parse();
-    arg0_dispatch_or_else(|codex_linux_sandbox_exe| async move {
+    arg0_dispatch_or_else(|codex_linux_sandbox_exe: Arg0DispatchPaths| async move {
         cli_main(cli, codex_linux_sandbox_exe).await?;
         Ok(())
     })
@@ -555,7 +553,7 @@ fn main() -> anyhow::Result<()> {
 
 async fn cli_main(
     cli: MultitoolCli,
-    codex_linux_sandbox_exe: Option<PathBuf>,
+    codex_linux_sandbox_exe: Arg0DispatchPaths,
 ) -> anyhow::Result<()> {
     let MultitoolCli {
         config_overrides: mut root_config_overrides,
@@ -715,7 +713,11 @@ async fn cli_main(
                 &mut cloud_cli.config_overrides,
                 root_config_overrides.clone(),
             );
-            codex_cloud_tasks::run_main(cloud_cli, codex_linux_sandbox_exe).await?;
+            codex_cloud_tasks::run_main(
+                cloud_cli,
+                codex_linux_sandbox_exe.codex_linux_sandbox_exe.clone(),
+            )
+            .await?;
         }
         Some(Subcommand::Sandbox(sandbox_args)) => match sandbox_args.cmd {
             SandboxCommand::Macos(mut seatbelt_cli) => {
@@ -725,7 +727,7 @@ async fn cli_main(
                 );
                 codex_cli::debug_sandbox::run_command_under_seatbelt(
                     seatbelt_cli,
-                    codex_linux_sandbox_exe,
+                    codex_linux_sandbox_exe.codex_linux_sandbox_exe.clone(),
                 )
                 .await?;
             }
@@ -736,7 +738,7 @@ async fn cli_main(
                 );
                 codex_cli::debug_sandbox::run_command_under_landlock(
                     landlock_cli,
-                    codex_linux_sandbox_exe,
+                    codex_linux_sandbox_exe.codex_linux_sandbox_exe.clone(),
                 )
                 .await?;
             }
@@ -747,7 +749,7 @@ async fn cli_main(
                 );
                 codex_cli::debug_sandbox::run_command_under_windows(
                     windows_cli,
-                    codex_linux_sandbox_exe,
+                    codex_linux_sandbox_exe.codex_linux_sandbox_exe.clone(),
                 )
                 .await?;
             }
@@ -894,7 +896,7 @@ fn prepend_config_flags(
 
 async fn run_interactive_tui(
     mut interactive: TuiCli,
-    codex_linux_sandbox_exe: Option<PathBuf>,
+    codex_linux_sandbox_exe: Arg0DispatchPaths,
 ) -> std::io::Result<AppExitInfo> {
     if let Some(prompt) = interactive.prompt.take() {
         // Normalize CRLF/CR to LF so CLI-provided text can't leak `\r` into TUI state.

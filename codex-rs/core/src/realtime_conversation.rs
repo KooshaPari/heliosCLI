@@ -25,6 +25,7 @@ use codex_protocol::protocol::RealtimeConversationClosedEvent;
 use codex_protocol::protocol::RealtimeConversationRealtimeEvent;
 use codex_protocol::protocol::RealtimeConversationStartedEvent;
 use http::HeaderMap;
+#[cfg(test)]
 use serde_json::Value;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -210,16 +211,6 @@ pub(crate) async fn handle_start(
             msg,
         };
         while let Ok(event) = events_rx.recv().await {
-            let maybe_routed_text = match &event {
-                RealtimeEvent::ConversationItemAdded(item) => {
-                    realtime_text_from_conversation_item(item)
-                }
-                _ => None,
-            };
-            if let Some(text) = maybe_routed_text {
-                let sess_for_routed_text = Arc::clone(&sess_clone);
-                sess_for_routed_text.route_realtime_text_input(text).await;
-            }
             sess_clone
                 .send_event_raw(ev(EventMsg::RealtimeConversationRealtime(
                     RealtimeConversationRealtimeEvent {
@@ -252,6 +243,7 @@ pub(crate) async fn handle_audio(
     }
 }
 
+#[cfg(test)]
 fn realtime_text_from_conversation_item(item: &Value) -> Option<String> {
     match item.get("type").and_then(Value::as_str) {
         Some("message") => {

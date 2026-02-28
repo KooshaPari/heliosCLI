@@ -1,4 +1,5 @@
 use crate::codex::Session;
+use crate::network_policy_decision::execpolicy_network_rule_amendment;
 use crate::network_policy_decision::denied_network_policy_message;
 use crate::tools::sandboxing::ToolError;
 use codex_network_proxy::BlockedRequest;
@@ -355,21 +356,24 @@ impl NetworkApprovalService {
                 network_policy_amendment,
             } => match network_policy_amendment.action {
                 NetworkPolicyRuleAction::Allow => {
+                    let amendment = execpolicy_network_rule_amendment(
+                        &network_policy_amendment,
+                        &network_approval_context,
+                        &network_policy_amendment.host,
+                    );
                     match session
-                        .persist_network_policy_amendment(
-                            &network_policy_amendment,
-                            &network_approval_context,
+                        .services
+                        .exec_policy
+                        .append_network_rule_and_update(
+                            turn_context.config.codex_home.as_path(),
+                            &network_policy_amendment.host,
+                            amendment.protocol,
+                            amendment.decision,
+                            Some(amendment.justification),
                         )
                         .await
                     {
-                        Ok(()) => {
-                            session
-                                .record_network_policy_amendment_message(
-                                    &turn_context.sub_id,
-                                    &network_policy_amendment,
-                                )
-                                .await;
-                        }
+                        Ok(()) => PendingApprovalDecision::AllowForSession,
                         Err(err) => {
                             let message =
                                 format!("Failed to apply network policy amendment: {err}");
@@ -380,42 +384,39 @@ impl NetworkApprovalService {
                                     msg: EventMsg::Warning(WarningEvent { message }),
                                 })
                                 .await;
+                            PendingApprovalDecision::AllowForSession
                         }
                     }
-                    PendingApprovalDecision::AllowForSession
                 }
                 NetworkPolicyRuleAction::Deny => {
-                    match session
-                        .persist_network_policy_amendment(
-                            &network_policy_amendment,
-                            &network_approval_context,
+                    let amendment = execpolicy_network_rule_amendment(
+                        &network_policy_amendment,
+                        &network_approval_context,
+                        &network_policy_amendment.host,
+                    );
+                    if let Err(err) = session
+                        .services
+                        .exec_policy
+                        .append_network_rule_and_update(
+                            turn_context.config.codex_home.as_path(),
+                            &network_policy_amendment.host,
+                            amendment.protocol,
+                            amendment.decision,
+                            Some(amendment.justification),
                         )
                         .await
                     {
-                        Ok(()) => {
-                            session
-                                .record_network_policy_amendment_message(
-                                    &turn_context.sub_id,
-                                    &network_policy_amendment,
-                                )
-                                .await;
-                        }
-                        Err(err) => {
-                            let message =
-                                format!("Failed to apply network policy amendment: {err}");
-                            warn!("{message}");
-                            session
-                                .send_event_raw(Event {
-                                    id: turn_context.sub_id.clone(),
-                                    msg: EventMsg::Warning(WarningEvent { message }),
-                                })
-                                .await;
-                        }
+                        let message = format!("Failed to apply network policy amendment: {err}");
+                        warn!("{message}");
+                        session
+                            .send_event_raw(Event {
+                                id: turn_context.sub_id.clone(),
+                                msg: EventMsg::Warning(WarningEvent { message }),
+                            })
+                            .await;
                     }
-                    self.record_outcome_for_single_active_call(
-                        NetworkApprovalOutcome::DeniedByUser,
-                    )
-                    .await;
+                    self.record_outcome_for_single_active_call(NetworkApprovalOutcome::DeniedByUser)
+                        .await;
                     cache_session_deny = true;
                     PendingApprovalDecision::Deny
                 }
