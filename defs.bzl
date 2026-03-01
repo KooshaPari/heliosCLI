@@ -28,7 +28,7 @@ def multiplatform_binaries(name, platforms = PLATFORMS):
         tags = ["manual"],
     )
 
-def helios_rust_crate(
+def codex_rust_crate(
         name,
         crate_name,
         crate_features = [],
@@ -196,3 +196,8 @@ def helios_rust_crate(
             env = cargo_env,
             tags = test_tags,
         )
+
+def helios_rust_crate(**kwargs):
+    # Keep helios-specific call sites working while codex-rs BUILD files
+    # continue to load the canonical codex_rust_crate macro.
+    codex_rust_crate(**kwargs)
