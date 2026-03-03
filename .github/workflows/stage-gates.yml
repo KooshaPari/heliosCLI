@@ -106,7 +106,7 @@ jobs:
         run: pip install ruff && ruff format --check .
       - name: Format check (Node)
         if: needs.detect-stage.outputs.lang == 'node'
-        run: npx prettier --check .
+        run: npx oxfmt --check "scripts/**/*.mjs"
 
   lint:
     needs: detect-stage
@@ -130,7 +130,7 @@ jobs:
         run: pip install ruff && ruff check .
       - name: Lint (Node)
         if: needs.detect-stage.outputs.lang == 'node'
-        run: npx eslint .
+        run: npx oxlint --deny-warnings . && npx tsgolint
 
   secret-scan:
     needs: detect-stage

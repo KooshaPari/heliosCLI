@@ -35,9 +35,7 @@ function executableExists(name) {
   const pathEntries = pathValue.split(path.delimiter).filter(Boolean);
   const windowsExts =
     process.platform === "win32"
-      ? (process.env.PATHEXT ?? ".EXE;.CMD;.BAT")
-          .split(";")
-          .filter(Boolean)
+      ? (process.env.PATHEXT ?? ".EXE;.CMD;.BAT").split(";").filter(Boolean)
       : [""];
 
   for (const directory of pathEntries) {
@@ -72,9 +70,7 @@ function main() {
     throw new Error(`Unknown profile '${profile}'. Expected one of: ${validProfiles}`);
   }
 
-  const missingTools = PROFILE_TOOLS[profile].filter(
-    (toolName) => !executableExists(toolName),
-  );
+  const missingTools = PROFILE_TOOLS[profile].filter((toolName) => !executableExists(toolName));
   const missingPaths = requiredPaths().filter((requiredPath) => !fs.existsSync(requiredPath));
 
   if (missingTools.length === 0 && missingPaths.length === 0) {
