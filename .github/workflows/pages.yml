@@ -1,13 +1,6 @@
 name: Pages Deploy
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "docs/**"
-      - ".github/workflows/pages.yml"
-      - "docs/package.json"
-      - "docs/package-lock.json"
   workflow_dispatch:
 
 permissions:
@@ -26,8 +19,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
           cache-dependency-path: docs/package-lock.json
       - uses: actions/configure-pages@v5
         with:
