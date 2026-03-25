@@ -75,8 +75,10 @@ tasks:
       - task: dev:streamlit
       - echo ""
       - echo "[DEV] Services started:"
-      - echo "  NATS: nats://localhost:4222"
-      - echo "  Streamlit: http://localhost:8501"
+      - |
+        echo "  NATS: nats://localhost:4222"
+      - |
+        echo "  Streamlit: http://localhost:8501"
 
   dev:nats:
     desc: Start NATS server
