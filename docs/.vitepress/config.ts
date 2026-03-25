@@ -1,41 +1,43 @@
 import { defineConfig } from 'vitepress'
-import { resolveDocsBase } from "../../../docs-hub/.vitepress/base.config"
-
-const docsBase = resolveDocsBase()
-
-// Supported locales: en, zh-CN, zh-TW, fa, fa-Latn
-const locales = {
-  root: { label: "English", lang: "en", title: 'heliosHarness', description: 'Harness docs' },
-  "zh-CN": { label: "简体中文", lang: "zh-CN", title: 'heliosHarness', description: 'Harness 文档' },
-  "zh-TW": { label: "繁體中文", lang: "zh-TW", title: 'heliosHarness', description: 'Harness 文檔' },
-  fa: { label: "فارسی", lang: "fa", title: 'heliosHarness', description: 'مستندات Harness' },
-  "fa-Latn": { label: "Pinglish", lang: "fa-Latn", title: 'heliosHarness', description: 'Harness docs (Latin)' }
-}
 
 export default defineConfig({
-  title: 'heliosHarness',
-  description: 'Harness docs',
-  base: docsBase,
-  srcExclude: ['fragemented/research/**'],
-  locales,
+  title: 'Documentation',
+  description: 'Unified documentation',
+  srcDir: '.',
+  lastUpdated: true,
+  cleanUrls: true,
+  ignoreDeadLinks: true,
   themeConfig: {
     nav: [
-      { text: 'Start Here', link: '/index' },
-      { text: 'Tutorials', link: '/tutorials/' },
-      { text: 'How-to', link: '/how-to/' },
-      { text: 'Explanation', link: '/explanation/' },
-      { text: 'Operations', link: '/operations/' },
+      { text: 'Home', link: '/' },
+      { text: 'Wiki', link: '/wiki/' },
+      { text: 'Development Guide', link: '/development/' },
+      { text: 'Document Index', link: '/index/' },
       { text: 'API', link: '/api/' },
-      {
-        text: "🌐 Language",
-        items: [
-          { text: "English", link: "/" },
-          { text: "简体中文", link: "/zh-CN/" },
-          { text: "繁體中文", link: "/zh-TW/" },
-          { text: "فارسی", link: "/fa/" },
-          { text: "Pinglish", link: "/fa-Latn/" }
-        ]
-      }
-    ]
+      { text: 'Roadmap', link: '/roadmap/' }
+    ],
+    sidebar: {
+      '/wiki/': [{ text: 'Wiki', items: [{ text: 'Overview', link: '/wiki/' }] }],
+      '/development/': [{ text: 'Development Guide', items: [{ text: 'Overview', link: '/development/' }] }],
+      '/index/': [{ text: 'Document Index', items: [
+        { text: 'Overview', link: '/index/' },
+        { text: 'Raw/All', link: '/index/raw-all' },
+        { text: 'Planning', link: '/index/planning' },
+        { text: 'Specs', link: '/index/specs' },
+        { text: 'Research', link: '/index/research' },
+        { text: 'Worklogs', link: '/index/worklogs' },
+        { text: 'Other', link: '/index/other' }
+      ] }],
+      '/api/': [{ text: 'API', items: [{ text: 'Overview', link: '/api/' }] }],
+      '/roadmap/': [{ text: 'Roadmap', items: [{ text: 'Overview', link: '/roadmap/' }] }],
+      '/': [{ text: 'Quick Links', items: [
+        { text: 'Wiki', link: '/wiki/' },
+        { text: 'Development Guide', link: '/development/' },
+        { text: 'Document Index', link: '/index/' },
+        { text: 'API', link: '/api/' },
+        { text: 'Roadmap', link: '/roadmap/' }
+      ] }]
+    },
+    search: { provider: 'local' }
   }
 })
