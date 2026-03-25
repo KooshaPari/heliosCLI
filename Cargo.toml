@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 members = [
     "crates/harness_spec",
     "crates/harness_checkpoint",
