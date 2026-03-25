@@ -249,7 +249,9 @@ impl RootManager {
                 .await
                 .iter_mut()
                 .find(|a| a.id == agent_id)
-                .map(|a| a.release(true));
+            {
+                a.release(true);
+            }
         }
 
         results

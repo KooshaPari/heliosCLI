@@ -4,7 +4,6 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use harness_cache::{Cache, CacheConfig, MokaCache};
 
 fn bench_cache_get(c: &mut Criterion) {
-    let rt = tokio::runtime::Runtime::new().unwrap();
     let cache = Cache::with_defaults();
     rt.block_on(async {
         cache.set("key", vec![1, 2, 3]).await;
@@ -36,16 +35,19 @@ fn bench_moka_cache(c: &mut Criterion) {
 }
 
 fn bench_cache_set(c: &mut Criterion) {
-    let rt = tokio::runtime::Runtime::new().unwrap();
     let key = "benchmark_key";
 
     c.bench_function("cache_set", |b| {
         b.iter(|| {
-            let _ = rt.block_on(async {
-                let cache = Cache::with_defaults();
-                cache.set(black_box(key), black_box(vec![1, 2, 3])).await;
-            });
+            let cache = Cache::with_defaults();
+            cache.set(black_box(key.to_string()), black_box(vec![1, 2, 3]));
         });
+    });
+}
+
+fn bench_cache_with_config(c: &mut Criterion) {
+    c.bench_function("cache_new_default_config", |b| {
+        b.iter(|| Cache::new(&CacheConfig::default()));
     });
 }
 

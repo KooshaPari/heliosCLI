@@ -29,24 +29,24 @@ print('=== Circuit Breaker Test ===')
 config = CircuitBreakerConfig(failure_threshold=3, timeout=1)
 cb = CircuitBreaker(config=config)
 
-# Test normal operation
-def succeed():
-    return 'ok'
+          # Test normal operation
+          def succeed():
+              return 'ok'
 
-result = cb.call(succeed)
-print(f'Normal call: {result}')
-print(f'State: {cb.state.value}')
+          result = cb.call(succeed)
+          print(f'Normal call: {result}')
+          print(f'State: {cb.state.value}')
 
-# Test failure tracking
-for i in range(5):
-    try:
-        cb.call(lambda: (_ for _ in ()).throw(Exception('fail')))
-    except:
-        pass
+          # Test failure tracking
+          for i in range(5):
+              try:
+                  cb.call(lambda: (_ for _ in ()).throw(Exception('fail')))
+              except:
+                  pass
 
-print(f'After failures - State: {cb.state.value}')
-print('Circuit breaker working!')
-"
+          print(f'After failures - State: {cb.state.value}')
+          print('Circuit breaker working!')
+          "
 
   request-batching:
     runs-on: macos-latest
