@@ -1,13 +1,10 @@
 name: Leak Detection
 
+# NOTE: Billable runs disabled - use pre-commit/pre-push hooks for validation
 on:
-  push:
-    branches: [main, feature/performance-optimization]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
   schedule:
-    # Run daily at 3am
-    - cron: '0 3 * * *'
+    - cron: "0 7 * * *"
 
 jobs:
   memory-leak-detect:

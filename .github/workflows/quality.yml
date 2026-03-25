@@ -1,9 +1,10 @@
 name: Quality
 
+# NOTE: Billable runs disabled - use pre-commit/pre-push hooks for validation
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * *"
 
 jobs:
   docs-and-tests:
