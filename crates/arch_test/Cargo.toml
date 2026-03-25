@@ -1,0 +1,10 @@
+[package]
+name = "arch_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+proptest = "1.4"
+tempfile = "3.10"
+walkdir = "2.4"
+regex = "1.10"
