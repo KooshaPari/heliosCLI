@@ -814,7 +814,7 @@ mod tests {
             &tokens.url,
         );
         assert!(result.is_err());
-        assert!(super::fallback_file_path().unwrap().exists());
+        assert!(super::fallback_file_path()?.exists());
         Ok(())
     }
 
