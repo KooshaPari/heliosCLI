@@ -99,8 +99,8 @@ mod queued_user_messages;
 mod renderer;
 mod scroll_state;
 mod selection_popup_common;
-mod textarea;
 mod text_manipulation;
+mod textarea;
 mod unified_exec_footer;
 pub(crate) use feedback_view::FeedbackNoteView;
 
