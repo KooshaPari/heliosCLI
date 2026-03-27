@@ -1,9 +1,25 @@
 [workspace]
 resolver = "2"
 members = [
-    # Native extensions (these can be built)
-    "crates/harness-native",
-    ]
+    "crates/arch_test",
+    "crates/harness_cache",
+    "crates/harness_checkpoint",
+    "crates/harness_discoverer",
+    "crates/harness_elicitation",
+    "crates/harness_interfaces",
+    "crates/harness_normalizer",
+    "crates/harness_orchestrator",
+    "crates/harness_pyo3",
+    "crates/harness_queue",
+    "crates/harness_rollback",
+    "crates/harness_runner",
+    "crates/harness_scaling",
+    "crates/harness_schema",
+    "crates/harness_spec",
+    "crates/harness_teammates",
+    "crates/harness_utils",
+    "crates/harness_verify",
+]
 
 [workspace.package]
 name = "helios"
