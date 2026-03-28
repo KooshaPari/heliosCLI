@@ -67,6 +67,8 @@ pub(crate) struct MentionBinding {
 }
 mod chat_composer;
 mod chat_composer_history;
+mod key_event_router;
+pub(crate) use key_event_router::KeyEventRouter;
 mod command_popup;
 mod history;
 pub mod custom_prompt_view;
