@@ -1211,9 +1211,7 @@ async fn find_thread_path_by_id_str_in_subdir(
     if !root.exists() {
         return Ok(None);
     }
-    // This is safe because we know the values are valid.
-    #[allow(clippy::unwrap_used)]
-    let limit = NonZero::new(1).unwrap();
+    let limit = NonZero::new(1).expect("file search limit must be non-zero");
     let options = file_search::FileSearchOptions {
         limit,
         compute_indices: false,
