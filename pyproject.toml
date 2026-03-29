@@ -29,8 +29,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.2.0",
-    "ruff>=0.8.0",
+    "pytest>=9.0.0",
+    "ruff>=0.15.0",
     "mypy>=1.13.0",
     "pytest-cov>=6.0.0",
 ]
@@ -109,8 +109,8 @@ module = ["tests.*", "streamlit.*", "pandas.*", "nats.*", "helios_router_ui.nats
 
 [dependency-groups]
 dev = [
-    "pytest>=8.2.0",
-    "ruff>=0.8.0",
+    "pytest>=9.0.0",
+    "ruff>=0.15.0",
     "mypy>=1.13.0",
     "pytest-cov>=6.0.0",
 ]
