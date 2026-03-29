@@ -10,3 +10,6 @@
 [submodule "vendor/phenodocs"]
 	path = vendor/phenodocs
 	url = https://github.com/KooshaPari/phenodocs.git
+[submodule "docs/phenodocs"]
+	path = docs/phenodocs
+	url = https://github.com/kooshapari/phenodocs.git
